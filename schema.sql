@@ -66,4 +66,4 @@ INSERT OR IGNORE INTO products (id, name, price, demo_url, status, sort_order) V
  ('p8',  '8. Our Little Universe',       20000, 'https://bloomafter08.vercel.app/',    'Tersedia',    8),
  ('p9',  '9. Our Little Universe ♡',     20000, 'https://bloomafter9.vercel.app/',     'Tersedia',    9),
  ('p10', '10. Jeje — Little Universe',   20000, 'https://eysshies.vercel.app/',        'Perlu Update', 10),
- ('p11', '11. Starlight Anniversary',    20000, 'https://eyshiess.vercel.app/',        'Perlu Update', 11);
+ ('p11', '11. Starlight Anniversary',    10000, 'https://eyshiess.vercel.app/',        'Perlu Update', 11);
