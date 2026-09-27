@@ -21,3 +21,4 @@ export async function onRequestPost(context) {
  200,
  { 'Cache-Control': 'no-store' }
 );
+}
