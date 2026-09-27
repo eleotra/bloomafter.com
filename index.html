@@ -967,10 +967,26 @@
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ order_id: orderId })
       });
-      const data = await res.json();
+      const rawText = await res.text();
+      console.log('[ownerGenerateCode] HTTP status:', res.status, '| raw response:', rawText);
+
+      let data;
+      try{ data = JSON.parse(rawText); }
+      catch(parseErr){
+        console.error('[ownerGenerateCode] Response BUKAN JSON valid:', parseErr, '\nIsi mentahnya:', rawText);
+        alert('Gagal generate kode: server tidak mengembalikan JSON (status ' + res.status + ').\n\nIsi respons:\n' + rawText.slice(0, 300));
+        return;
+      }
+
       if(data.ok){ alert('Kode: '+data.code+'\n\nKirim ke buyer lewat Telegram/WA ya.'); loadOwner(); }
-      else { alert(data.error || 'Gagal generate kode'); }
-    }catch(e){ alert('Gagal generate kode.'); }
+      else {
+        console.error('[ownerGenerateCode] Server balas error:', data.error, '| status:', res.status);
+        alert('Gagal generate kode (status ' + res.status + '):\n' + (data.error || 'tidak ada pesan error dari server'));
+      }
+    }catch(e){
+      console.error('[ownerGenerateCode] Fetch gagal total:', e);
+      alert('Gagal generate kode (fetch error): ' + (e && e.message ? e.message : 'error jaringan'));
+    }
   }
   async function ownerMarkDone(orderId){
     const url = document.getElementById('url-'+orderId).value.trim();
