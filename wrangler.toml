@@ -7,4 +7,4 @@ pages_build_output_dir = "."
 [[d1_databases]]
 binding = "DB"
 database_name = "rumah_bucin_db"
-database_id = "PASTE_DATABASE_ID_DI_SINI"
+database_id = "13e4b086-2e94-4912-aaf9-565d6c9b2c01"
