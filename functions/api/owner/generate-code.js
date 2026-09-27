@@ -17,8 +17,8 @@ export async function onRequestPost(context) {
   ).bind(code, orderId).run();
 
   return json(
- { orders: results || [] },
- 200,
- { 'Cache-Control': 'no-store' }
+  { code },
+  200,
+  { 'Cache-Control': 'no-store' }
 );
 }
