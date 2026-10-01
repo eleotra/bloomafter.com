@@ -16,9 +16,5 @@ export async function onRequestPost(context) {
     "UPDATE orders SET code = ?, code_used = 0, status = 'kode_terkirim', code_sent_at = datetime('now') WHERE id = ?"
   ).bind(code, orderId).run();
 
-  return json(
-  { code },
-  200,
-  { 'Cache-Control': 'no-store' }
-);
+  return json({ ok: true, code });
 }
