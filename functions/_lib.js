@@ -61,3 +61,21 @@ export function isOwner(user, env) {
 export function genCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
+
+// Dipakai endpoint yang dipanggil CROSS-ORIGIN dari template customer
+// (validate-edit-token, submit-final) -- responsnya cuma data non-rahasia
+// (boolean/konfirmasi), jadi aman diakses dari domain manapun.
+export function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400'
+  };
+}
+export function jsonCors(obj, status) {
+  return new Response(JSON.stringify(obj), {
+    status: status || 200,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...corsHeaders() }
+  });
+}
