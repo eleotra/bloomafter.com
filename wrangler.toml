@@ -2,9 +2,11 @@ name = "rumah-bucin"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "."
 
-# Binding database D1. Ganti database_id di bawah dengan ID D1 kamu sendiri
-# (didapat setelah menjalankan: npx wrangler d1 create rumah_bucin_db)
 [[d1_databases]]
 binding = "DB"
 database_name = "rumah_bucin_db"
 database_id = "13e4b086-2e94-4912-aaf9-565d6c9b2c01"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "rumah-bucin-files"
