@@ -48,6 +48,13 @@ CREATE TABLE IF NOT EXISTS orders (
   done_at TEXT,
   final_url TEXT,
   owner_note TEXT,
+  edit_token TEXT,
+  edit_password TEXT,
+  submission_r2_key TEXT,
+  submission_file_name TEXT,
+  submission_size INTEGER,
+  submission_at TEXT,
+  submission_seen INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
@@ -66,4 +73,4 @@ INSERT OR IGNORE INTO products (id, name, price, demo_url, status, sort_order) V
  ('p8',  '8. Our Little Universe',       20000, 'https://bloomafter08.vercel.app/',    'Tersedia',    8),
  ('p9',  '9. Our Little Universe ♡',     20000, 'https://bloomafter9.vercel.app/',     'Tersedia',    9),
  ('p10', '10. Jeje — Little Universe',   20000, 'https://eysshies.vercel.app/',        'Perlu Update', 10),
- ('p11', '11. Starlight Anniversary',    10000, 'https://eyshiess.vercel.app/',        'Perlu Update', 11);
+ ('p11', '11. Starlight Anniversary',    20000, 'https://eyshiess.vercel.app/',        'Perlu Update', 11);
