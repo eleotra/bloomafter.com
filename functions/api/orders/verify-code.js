@@ -1,4 +1,4 @@
-import { json, getSessionUser } from '../../_lib.js';
+import { json, getSessionUser, randomToken } from '../../_lib.js';
 
 // POST /api/orders/verify-code  Body: { order_id, code }
 export async function onRequestPost(context) {
@@ -26,18 +26,18 @@ export async function onRequestPost(context) {
     return json({ error: 'Kode salah, coba cek lagi ya' }, 400);
   }
 
+  // Token unik (dipakai buat validasi ke template lewat /api/orders/validate-edit-token).
+  // Nggak ada lagi "password" yang dikirim ke frontend -- template yang validasi token ini
+  // langsung ke server, jadi customer nggak pernah lihat URL asli atau password apa pun.
+  const editToken = randomToken().slice(0, 24);
+
   await env.DB.prepare(
-    "UPDATE orders SET status = 'editing', code_used = 1, editing_started_at = datetime('now') WHERE id = ?"
-  ).bind(order_id).run();
+    `UPDATE orders
+     SET status = 'editing', code_used = 1, editing_started_at = datetime('now'),
+         edit_token = ?
+     WHERE id = ?`
+  ).bind(editToken, order_id).run();
 
-  const product = await env.DB.prepare(
-    'SELECT admin_url, admin_password, auto_login FROM products WHERE id = ?'
-  ).bind(order.product_id).first();
-
-  return json({
-    ok: true,
-    admin_url: product ? product.admin_url : null,
-    admin_password: product ? product.admin_password : null,
-    auto_login: product ? !!product.auto_login : false
-  });
+  return json({ ok: true });
 }
+
