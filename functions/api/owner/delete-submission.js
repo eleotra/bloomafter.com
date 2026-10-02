@@ -1,18 +1,16 @@
-import { json, getSessionUser, isOwner } from '../../../_lib.js';
+import { json, getSessionUser, isOwner } from '../../_lib.js';
 
 // POST /api/owner/delete-submission
 // Menghapus file final customer dari R2 dan membersihkan metadata submission di D1.
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  // Cek login owner
   const user = await getSessionUser(request, env);
 
   if (!isOwner(user, env)) {
     return json({ error: 'Bukan akun owner' }, 403);
   }
 
-  // Cek binding R2
   if (!env.FILES) {
     return json(
       { error: 'Storage (R2) belum di-bind. Tambahkan binding FILES.' },
@@ -20,7 +18,6 @@ export async function onRequestPost(context) {
     );
   }
 
-  // Cek binding D1
   if (!env.DB) {
     return json(
       { error: 'Database (D1) belum di-bind.' },
@@ -28,7 +25,6 @@ export async function onRequestPost(context) {
     );
   }
 
-  // Baca body JSON
   let body;
 
   try {
@@ -43,7 +39,6 @@ export async function onRequestPost(context) {
     return json({ error: 'order_id wajib diisi.' }, 400);
   }
 
-  // Cari order
   const order = await env.DB.prepare(
     `SELECT id, submission_r2_key, submission_file_name
      FROM orders
@@ -59,7 +54,6 @@ export async function onRequestPost(context) {
 
   const key = order.submission_r2_key;
 
-  // Kalau file memang sudah tidak ada
   if (!key) {
     return json({
       ok: true,
@@ -68,7 +62,6 @@ export async function onRequestPost(context) {
     });
   }
 
-  // Hapus file dari R2
   try {
     await env.FILES.delete(key);
   } catch (e) {
@@ -78,7 +71,6 @@ export async function onRequestPost(context) {
     );
   }
 
-  // Bersihkan metadata submission dari D1
   try {
     await env.DB.prepare(
       `UPDATE orders
