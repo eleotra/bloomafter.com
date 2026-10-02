@@ -318,6 +318,280 @@ body.admin-active .prod-thumb{cursor:pointer;}
 .reveal{opacity:0; transform:translateY(16px); transition:opacity .7s ease, transform .7s ease;}
 .reveal.in{opacity:1; transform:translateY(0);}
 
+
+/* ===== MOBILE RESPONSIVE FIX ===== */
+@media (max-width: 600px){
+  html, body{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:100%;
+    padding-left:16px;
+    padding-right:16px;
+  }
+
+  /* Header: jangan sampai nama + tombol + akun saling dorong keluar layar */
+  nav.topnav{
+    padding:10px 0;
+  }
+
+  nav.topnav .wrap{
+    gap:8px;
+    min-width:0;
+  }
+
+  .brand{
+    min-width:0;
+    flex:1 1 auto;
+    font-size:16px;
+    gap:5px;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+
+  .brand-badge{
+    width:28px;
+    height:28px;
+    min-width:28px;
+    border-radius:9px;
+    font-size:14px;
+  }
+
+  .brand .dot{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .navRight{
+    flex:0 0 auto;
+    min-width:0;
+    gap:5px;
+  }
+
+  .nav-cta{
+    padding:9px 12px;
+    font-size:11.5px;
+  }
+
+  .owner-nav-btn{
+    width:34px;
+    height:34px;
+  }
+
+  .profile-chip{
+    max-width:112px;
+    padding:4px 9px 4px 4px;
+    gap:6px;
+  }
+
+  .profile-chip img{
+    width:27px;
+    height:27px;
+  }
+
+  .profile-chip span{
+    max-width:68px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  #authArea{
+    min-width:0;
+    max-width:112px;
+  }
+
+  /* Hero */
+  .hero{
+    padding:38px 0 30px;
+  }
+
+  .hero-kicker{
+    max-width:100%;
+    font-size:10.5px;
+    padding:7px 11px;
+    white-space:normal;
+  }
+
+  .hero-title{
+    max-width:100%;
+    font-size:31px;
+    line-height:1.1;
+    letter-spacing:-.025em;
+  }
+
+  .hero-sub{
+    max-width:100%;
+    font-size:13.5px;
+    line-height:1.7;
+  }
+
+  .hero-actions{
+    width:100%;
+    gap:9px;
+  }
+
+  .hero-actions .btn{
+    flex:1 1 0;
+    min-width:0;
+    padding-left:12px;
+    padding-right:12px;
+  }
+
+  /* Section headings */
+  section{
+    padding:30px 0;
+  }
+
+  .section-head{
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:16px;
+  }
+
+  .section-title{
+    max-width:100%;
+    font-size:20px;
+    line-height:1.25;
+  }
+
+  .section-link{
+    flex-shrink:0;
+    font-size:11.5px;
+  }
+
+  /* Product cards */
+  .catalog-grid{
+    width:100%;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px;
+  }
+
+  .prod-card{
+    min-width:0;
+    width:100%;
+    border-radius:14px;
+  }
+
+  .prod-body{
+    min-width:0;
+    padding:9px 9px 10px;
+  }
+
+  .prod-name{
+    font-size:11.5px;
+  }
+
+  .prod-price{
+    font-size:12.5px;
+    margin-bottom:8px;
+  }
+
+  .prod-actions{
+    min-width:0;
+  }
+
+  .prod-actions a{
+    min-width:0;
+    padding:8px 3px;
+    font-size:9.5px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  /* Cara kerja */
+  .steps{
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+  }
+
+  .step{
+    min-width:0;
+    padding:16px 14px;
+  }
+
+  .step-title{
+    font-size:13px;
+  }
+
+  .step-text{
+    font-size:11.5px;
+  }
+
+  /* Footer */
+  footer{
+    padding-bottom:88px;
+  }
+
+  /* Bottom navigation */
+  #bottomNav{
+    padding-left:2px;
+    padding-right:2px;
+  }
+
+  #bottomNav button{
+    flex:1;
+    min-width:0;
+    padding-left:5px;
+    padding-right:5px;
+  }
+
+  /* Overlay pages */
+  .view-overlay{
+    padding-left:16px;
+    padding-right:16px;
+  }
+
+  .view-header{
+    margin-bottom:16px;
+  }
+}
+
+@media (max-width: 380px){
+  .brand{
+    font-size:14px;
+  }
+
+  .brand-badge{
+    width:26px;
+    min-width:26px;
+    height:26px;
+  }
+
+  .nav-cta{
+    padding:8px 9px;
+    font-size:10.5px;
+  }
+
+  .profile-chip{
+    max-width:96px;
+  }
+
+  .profile-chip span{
+    max-width:52px;
+  }
+
+  .hero-title{
+    font-size:28px;
+  }
+
+  .hero-actions{
+    flex-direction:column;
+  }
+
+  .hero-actions .btn{
+    width:100%;
+  }
+
+  .steps{
+    grid-template-columns:1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
 </style>
 </head>
