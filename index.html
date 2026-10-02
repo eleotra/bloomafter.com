@@ -292,6 +292,25 @@ footer{padding:40px 0 70px; text-align:center;}
 .katalog-form-card{padding:20px; margin-bottom:18px;}
 .katalog-form-card .field{margin-bottom:14px;}
 .form-grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.featured-picker{
+  margin:14px 0 16px; padding:14px; border:1px solid var(--border);
+  border-radius:var(--r-md); background:var(--surface);
+}
+.featured-picker-title{font-size:12.5px; font-weight:800; margin-bottom:5px;}
+.featured-picker-help{font-size:11px; color:var(--text-dim); line-height:1.55; margin-bottom:10px;}
+.featured-picker-list{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+.featured-option{
+  display:flex; align-items:center; gap:8px; padding:9px 10px; border-radius:10px;
+  background:rgba(255,255,255,.035); border:1px solid var(--border-soft);
+  font-size:11px; color:var(--text);
+}
+.featured-option input{accent-color:var(--primary); width:16px; height:16px; flex-shrink:0;}
+.music-note{
+  margin-top:14px; padding:14px; border-radius:var(--r-md);
+  background:var(--grad-soft); border:1px solid rgba(124,107,255,.22);
+  font-size:11.5px; color:var(--text-dim); line-height:1.7;
+}
+.music-note b{color:var(--text);}
 .thumb-upload-box{
   border:1.5px dashed var(--border); border-radius:var(--r-md); padding:16px; text-align:center;
   cursor:pointer; position:relative; overflow:hidden; min-height:110px; display:flex; align-items:center; justify-content:center;
@@ -615,7 +634,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
   <button class="toolbar-btn" id="btnAddProduct">+ Tambah Template</button>
   <button class="toolbar-btn primary" id="btnSave">💾 Simpan &amp; Unduh File Final</button>
   <button class="toolbar-btn" id="btnExitAdmin">Keluar</button>
-  <span style="font-size:10.5px;color:var(--text-dim);">Klik teks buat edit, klik gambar buat ganti, tombol "Link" buat ubah tujuan.</span>
+  <span style="font-size:10.5px;color:var(--text-dim);">Klik teks buat edit, klik gambar buat ganti, dan pilih Produk Populer di tab Katalog.</span>
 </div>
 <div class="admin-toast" id="adminToast"></div>
 
@@ -657,7 +676,6 @@ body.admin-active .prod-thumb{cursor:pointer;}
             <div class="section-eyebrow editable" contenteditable="false">produk favorit</div>
             <h2 class="section-title editable" contenteditable="false">Beberapa desain yang paling sering dipesan.</h2>
           </div>
-          <button class="section-link" id="homeSeeAllBtn" type="button">Lihat semua →</button>
         </div>
         <div class="catalog-grid" id="featuredGrid">
           <p class="empty-note">Memuat katalog...</p>
@@ -673,23 +691,26 @@ body.admin-active .prod-thumb{cursor:pointer;}
           <div class="step glass">
             <div class="step-num">1</div>
             <div class="step-title editable" contenteditable="false">Pilih & Pesan</div>
-            <div class="step-text editable" contenteditable="false">Pilih desain di katalog, order lewat chat.</div>
+            <div class="step-text editable" contenteditable="false">Pilih desain di katalog, lalu order lewat chat.</div>
           </div>
           <div class="step glass">
             <div class="step-num">2</div>
             <div class="step-title editable" contenteditable="false">Bayar</div>
-            <div class="step-text editable" contenteditable="false">Transfer sesuai harga, konfirmasi ke kami.</div>
+            <div class="step-text editable" contenteditable="false">Transfer sesuai harga dan konfirmasi pembayaran ke kami.</div>
           </div>
           <div class="step glass">
             <div class="step-num">3</div>
-            <div class="step-title editable" contenteditable="false">Isi Sendiri</div>
-            <div class="step-text editable" contenteditable="false">Dapat akses edit khusus buat ubah teks, foto, dan musik sesuai cerita kalian.</div>
+            <div class="step-title editable" contenteditable="false">Isi Website</div>
+            <div class="step-text editable" contenteditable="false">Setelah kode diberikan, kamu bisa edit teks, foto, dan musik sendiri.</div>
           </div>
           <div class="step glass">
             <div class="step-num">4</div>
             <div class="step-title editable" contenteditable="false">Kirim & Jadi</div>
-            <div class="step-text editable" contenteditable="false">Klik "Selesai Edit", kami upload websitenya. Mau pesan lagi? Tinggal order lagi.</div>
+            <div class="step-text editable" contenteditable="false">Kalau sudah selesai, klik "Selesai Edit & Kirim". Kami lanjutkan proses upload website.</div>
           </div>
+        </div>
+        <div class="music-note editable" contenteditable="false">
+          🎵 <b>Catatan musik:</b> untuk hasil akhir, musik sebaiknya <b>upload file MP3</b> langsung. Spotify hanya bisa digunakan sebagai <b>preview</b>; durasi tidak bisa diatur dari website dan pemutarannya dapat berhenti setelah beberapa saat karena mengikuti batasan Spotify.
         </div>
       </div>
     </section>
@@ -788,6 +809,11 @@ body.admin-active .prod-thumb{cursor:pointer;}
         </div>
       </div>
       <div class="field"><label>URL Preview</label><input type="url" id="kfPreviewUrl" placeholder="https://..."></div>
+      <div class="featured-picker">
+        <div class="featured-picker-title">⭐ Produk Populer di Beranda</div>
+        <div class="featured-picker-help">Pilih katalog mana yang mau tampil di bagian “Produk Favorit”. Maksimal 4 produk. Pilihan ini ikut tersimpan saat kamu <b>Simpan & Unduh File Final</b>.</div>
+        <div class="featured-picker-list" id="featuredPickerList"><span class="empty-note" style="grid-column:1/-1;padding:8px;">Memuat katalog...</span></div>
+      </div>
       <div style="display:flex; gap:8px; margin-top:6px;">
         <button class="btn solid block" id="kfSaveBtn">Simpan</button>
         <button class="btn ghost hidden" id="kfCancelBtn">Batal Edit</button>
@@ -1136,11 +1162,53 @@ body.admin-active .prod-thumb{cursor:pointer;}
     productsLoaded = true;
     return productsCache;
   }
+  function getFeaturedIds(){
+    const raw = document.documentElement.getAttribute('data-featured-ids') || '';
+    const ids = raw.split(',').map(x=>x.trim()).filter(Boolean);
+    if(ids.length) return ids;
+    return productsCache.slice(0, 4).map(p=>String(p.id));
+  }
+
+  function getFeaturedProducts(){
+    const ids = getFeaturedIds();
+    const byId = new Map(productsCache.map(p=>[String(p.id), p]));
+    return ids.map(id=>byId.get(String(id))).filter(Boolean).slice(0, 4);
+  }
+
+  function renderFeaturedPicker(products){
+    const box = document.getElementById('featuredPickerList');
+    if(!box) return;
+    const selected = new Set(getFeaturedIds());
+    if(!products.length){
+      box.innerHTML = '<span class="empty-note" style="grid-column:1/-1;padding:8px;">Belum ada katalog.</span>';
+      return;
+    }
+    box.innerHTML = products.map((p,i)=>
+      '<label class="featured-option">' +
+        '<input type="checkbox" class="featured-check" value="'+esc(p.id)+'" '+(selected.has(String(p.id))?'checked':'')+'>' +
+        '<span>'+esc((i+1)+'. '+p.name)+'</span>' +
+      '</label>'
+    ).join('');
+    box.querySelectorAll('.featured-check').forEach(ch=>{
+      ch.addEventListener('change', ()=>{
+        const checked = [...box.querySelectorAll('.featured-check:checked')];
+        if(checked.length > 4){
+          ch.checked = false;
+          alert('Maksimal 4 produk populer.');
+          return;
+        }
+        const ids = checked.map(x=>x.value);
+        document.documentElement.setAttribute('data-featured-ids', ids.join(','));
+        renderFeatured();
+        showToast('Produk populer diperbarui. Jangan lupa Simpan & Unduh File Final.');
+      });
+    });
+  }
+
   function renderFeatured(){
     const grid = document.getElementById('featuredGrid');
     if(!productsCache.length){ grid.innerHTML = '<p class="empty-note">Belum ada produk di katalog.</p>'; return; }
-    const top = productsCache.slice(0, 4);
-    grid.innerHTML = top.map(productCardHTML).join('');
+    const top = getFeaturedProducts();
     if(adminMode) grid.querySelectorAll('[data-product]').forEach(applyAdminToCard);
     observeReveal(grid);
   }
@@ -1227,7 +1295,6 @@ body.admin-active .prod-thumb{cursor:pointer;}
     btn.addEventListener('click', ()=> showView(btn.dataset.view));
   });
   document.getElementById('heroKatalogBtn').addEventListener('click', ()=> showView('katalog'));
-  document.getElementById('homeSeeAllBtn').addEventListener('click', ()=> showView('katalog'));
 
   /* ================= RIWAYAT (BUYER) ================= */
   async function loadRiwayat(){
@@ -1532,6 +1599,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
       const res = await fetch('/api/products');
       const data = await res.json();
       const products = data.products || [];
+      renderFeaturedPicker(products);
       if(!products.length){ grid.innerHTML = '<p class="empty-note">Belum ada produk.</p>'; return; }
       grid.innerHTML = products.map(p=>
         '<div class="akg-card glass">' +
