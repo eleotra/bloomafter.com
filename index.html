@@ -813,7 +813,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
       <div class="field"><label>URL Edit Website (Admin)</label><input type="url" id="kfAdminUrl" placeholder="https://..."></div>
       <div class="featured-picker">
         <div class="featured-picker-title">⭐ Produk Populer di Beranda</div>
-        <div class="featured-picker-help">Pilih katalog mana yang mau tampil di bagian “Produk Favorit”. Maksimal 4 produk. Pilihan ini ikut tersimpan saat kamu <b>Simpan & Unduh File Final</b>.</div>
+        <div class="featured-picker-help">Pilih katalog mana yang mau tampil di bagian “Produk Favorit”. Maksimal 4 produk. Pilihan ini disimpan ke database saat kamu menekan <b>Simpan Pilihan Populer</b>.</div>
         <div class="featured-picker-list" id="featuredPickerList"><span class="empty-note" style="grid-column:1/-1;padding:8px;">Memuat katalog...</span></div>
         <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
           <button class="btn solid sm" id="featuredSaveBtn" type="button">Simpan Pilihan Populer</button>
@@ -1168,11 +1168,47 @@ body.admin-active .prod-thumb{cursor:pointer;}
     productsLoaded = true;
     return productsCache;
   }
+  let featuredSetting = null;
+  let featuredSettingLoaded = false;
+
   function getFeaturedIds(){
+    if(featuredSettingLoaded && Array.isArray(featuredSetting)) return featuredSetting.map(String);
     const raw = document.documentElement.getAttribute('data-featured-ids') || '';
     const ids = raw.split(',').map(x=>x.trim()).filter(Boolean);
     if(ids.length) return ids;
     return productsCache.slice(0, 4).map(p=>String(p.id));
+  }
+
+  async function loadFeaturedSetting(){
+    try{
+      const res = await fetch('/api/featured', { cache:'no-store' });
+      const data = await res.json();
+      if(data && data.ok){
+        featuredSetting = Array.isArray(data.ids) ? data.ids.map(String).slice(0,4) : null;
+        featuredSettingLoaded = true;
+        if(Array.isArray(featuredSetting)){
+          document.documentElement.setAttribute('data-featured-ids', featuredSetting.join(','));
+        }
+      }
+    }catch(e){
+      featuredSettingLoaded = false;
+    }
+    return featuredSetting;
+  }
+
+  async function saveFeaturedSetting(ids){
+    const clean = [...new Set((ids || []).map(String).filter(Boolean))].slice(0,4);
+    const res = await fetch('/api/owner/featured', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ids:clean})
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || 'Gagal menyimpan Produk Favorit.');
+    featuredSetting = Array.isArray(data.ids) ? data.ids.map(String) : clean;
+    featuredSettingLoaded = true;
+    document.documentElement.setAttribute('data-featured-ids', featuredSetting.join(','));
+    return featuredSetting;
   }
 
   function getFeaturedProducts(){
@@ -1204,6 +1240,8 @@ body.admin-active .prod-thumb{cursor:pointer;}
           return;
         }
         const ids = checked.map(x=>x.value);
+        featuredSetting = ids;
+        featuredSettingLoaded = true;
         document.documentElement.setAttribute('data-featured-ids', ids.join(','));
         renderFeatured();
         const fm = document.getElementById('featuredMsg');
@@ -1212,13 +1250,28 @@ body.admin-active .prod-thumb{cursor:pointer;}
     });
   }
 
-  document.getElementById('featuredSaveBtn').addEventListener('click', ()=>{
+  document.getElementById('featuredSaveBtn').addEventListener('click', async ()=>{
     const fm = document.getElementById('featuredMsg');
-    if(fm){
-      fm.className='verify-msg success';
-      fm.textContent='Pilihan Produk Populer tersimpan di halaman ini.';
+    const btn = document.getElementById('featuredSaveBtn');
+    const ids = [...document.querySelectorAll('#featuredPickerList .featured-check:checked')].map(x=>x.value);
+    if(ids.length > 4){
+      alert('Maksimal 4 produk populer.');
+      return;
     }
-    showToast('Pilihan Produk Populer disimpan. Kalau mau dipakai di file final, klik “Simpan & Unduh File Final”.');
+    if(btn){ btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+    try{
+      await saveFeaturedSetting(ids);
+      if(fm){
+        fm.className='verify-msg success';
+        fm.textContent='Pilihan Produk Favorit berhasil disimpan.';
+      }
+      showToast('Produk Favorit berhasil disimpan. Setelah refresh tetap sama.');
+    }catch(e){
+      if(fm){ fm.className='verify-msg error'; fm.textContent=e.message || 'Gagal menyimpan.'; }
+      alert(e.message || 'Gagal menyimpan Produk Favorit.');
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = 'Simpan Pilihan Populer'; }
+    }
   });
 
   function renderFeatured(){
@@ -1255,6 +1308,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
   }
   async function initHomeFeatured(){
     await ensureProducts();
+    await loadFeaturedSetting();
     renderFeatured();
   }
   async function loadKatalogView(){
@@ -1623,6 +1677,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
     const grid = document.getElementById('ownerKatalogGrid');
     grid.innerHTML = '<p class="empty-note">Memuat...</p>';
     try{
+      await loadFeaturedSetting();
       const res = await fetch('/api/products');
       const data = await res.json();
       const products = data.products || [];
