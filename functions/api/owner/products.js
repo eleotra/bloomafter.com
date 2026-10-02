@@ -1,55 +1,62 @@
-import { json, getSessionUser } from '../../_lib.js';
+import { json, getSessionUser, isOwner } from '../../_lib.js';
 
-export async function onRequestGet(context) {
-  const { request, env } = context;
-  const user = await getSessionUser(request, env);
-
-  if (!user) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
-
-  const rows = await env.DB.prepare(`
-    SELECT *
-    FROM products
-    ORDER BY sort_order ASC, created_at DESC
-  `).all();
-
-  return json(rows.results || []);
-}
+// POST   /api/owner/products
+// Body: {
+//   name,
+//   description,
+//   price,
+//   demo_url,
+//   thumbnail_url,
+//   status,
+//   admin_url
+// }
+//
+// PUT    /api/owner/products
+// Body: {
+//   id,
+//   ...field yang mau diubah
+// }
+//
+// DELETE /api/owner/products
+// Body: { id }
+//
+// Semua method di sini wajib login sebagai owner.
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+
   const user = await getSessionUser(request, env);
 
-  if (!user) {
-    return json({ error: 'Unauthorized' }, 401);
+  if (!isOwner(user, env)) {
+    return json({ error: 'Bukan akun owner' }, 403);
   }
 
-  const body = await request.json();
+  let body;
+
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: 'Body tidak valid' }, 400);
+  }
 
   const name = String(body.name || '').trim();
-  const price = Number(body.price || 0);
-  const description = String(body.description || '');
-  const demo_url = String(body.demo_url || '').trim();
-  const thumbnail_url = String(body.thumbnail_url || '').trim();
-  const status = String(body.status || 'Tersedia').trim();
-  const admin_url = String(body.admin_url || '').trim();
 
   if (!name) {
-    return json({ error: 'Nama produk wajib diisi.' }, 400);
+    return json({ error: 'Nama produk wajib diisi' }, 400);
   }
 
-  const id = crypto.randomUUID();
+  const price = Number(body.price) || 0;
 
-  const maxSort = await env.DB.prepare(`
-    SELECT COALESCE(MAX(sort_order), 0) AS max_sort
-    FROM products
-  `).first();
+  const id = 'p_' + crypto.randomUUID().slice(0, 8);
 
-  const sortOrder = Number(maxSort?.max_sort || 0) + 1;
+  const row = await env.DB
+    .prepare('SELECT MAX(sort_order) AS m FROM products')
+    .first();
 
-  await env.DB.prepare(`
-    INSERT INTO products (
+  const sortOrder = (row && row.m ? Number(row.m) : 0) + 1;
+
+  await env.DB.prepare(
+    `INSERT INTO products (
       id,
       name,
       price,
@@ -60,48 +67,62 @@ export async function onRequestPost(context) {
       admin_url,
       sort_order
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
     id,
     name,
     price,
-    description,
-    demo_url,
-    thumbnail_url,
-    status,
-    admin_url,
+    body.description || '',
+    body.demo_url || '',
+    body.thumbnail_url || '',
+    body.status || 'Tersedia',
+    body.admin_url || '',
     sortOrder
   ).run();
 
-  const product = await env.DB.prepare(`
-    SELECT *
-    FROM products
-    WHERE id = ?
-    LIMIT 1
-  `).bind(id).first();
-
   return json({
     ok: true,
-    product
-  }, 201);
+    id
+  });
 }
+
 
 export async function onRequestPut(context) {
   const { request, env } = context;
+
   const user = await getSessionUser(request, env);
 
-  if (!user) {
-    return json({ error: 'Unauthorized' }, 401);
+  if (!isOwner(user, env)) {
+    return json({ error: 'Bukan akun owner' }, 403);
   }
 
-  const url = new URL(request.url);
-  const id = url.searchParams.get('id');
+  let body;
+
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: 'Body tidak valid' }, 400);
+  }
+
+  // ID dikirim oleh frontend melalui JSON body:
+  // { id: "p_xxxxxxxx", ... }
+  const id = String(body.id || '').trim();
 
   if (!id) {
-    return json({ error: 'ID produk tidak ditemukan.' }, 400);
+    return json({ error: 'ID produk tidak ditemukan' }, 400);
   }
 
-  const body = await request.json();
+  // Pastikan produk memang ada
+  const existing = await env.DB
+    .prepare('SELECT id FROM products WHERE id = ?')
+    .bind(id)
+    .first();
+
+  if (!existing) {
+    return json({
+      error: 'Produk tidak ditemukan'
+    }, 404);
+  }
 
   const fields = [
     'name',
@@ -114,62 +135,99 @@ export async function onRequestPut(context) {
     'sort_order'
   ];
 
-  const updates = [];
-  const values = [];
+  const sets = [];
+  const vals = [];
 
   for (const field of fields) {
     if (Object.prototype.hasOwnProperty.call(body, field)) {
-      updates.push(`${field} = ?`);
-      values.push(body[field]);
+
+      sets.push(`${field} = ?`);
+
+      if (field === 'price' || field === 'sort_order') {
+        vals.push(Number(body[field]) || 0);
+      } else {
+        vals.push(String(body[field] ?? ''));
+      }
     }
   }
 
-  if (!updates.length) {
-    return json({ error: 'Tidak ada data yang diubah.' }, 400);
+  if (!sets.length) {
+    return json({
+      error: 'Tidak ada field yang diubah'
+    }, 400);
   }
 
-  updates.push(`updated_at = datetime('now')`);
+  vals.push(id);
 
-  values.push(id);
-
-  await env.DB.prepare(`
-    UPDATE products
-    SET ${updates.join(', ')}
-    WHERE id = ?
-  `).bind(...values).run();
-
-  const product = await env.DB.prepare(`
-    SELECT *
-    FROM products
-    WHERE id = ?
-    LIMIT 1
-  `).bind(id).first();
+  await env.DB
+    .prepare(
+      `UPDATE products
+       SET ${sets.join(', ')}
+       WHERE id = ?`
+    )
+    .bind(...vals)
+    .run();
 
   return json({
-    ok: true,
-    product
+    ok: true
   });
 }
 
+
 export async function onRequestDelete(context) {
   const { request, env } = context;
+
   const user = await getSessionUser(request, env);
 
-  if (!user) {
-    return json({ error: 'Unauthorized' }, 401);
+  if (!isOwner(user, env)) {
+    return json({
+      error: 'Bukan akun owner'
+    }, 403);
   }
 
-  const url = new URL(request.url);
-  const id = url.searchParams.get('id');
+  let body;
+
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({
+      error: 'Body tidak valid'
+    }, 400);
+  }
+
+  const id = String(body.id || '').trim();
 
   if (!id) {
-    return json({ error: 'ID produk tidak ditemukan.' }, 400);
+    return json({
+      error: 'id kosong'
+    }, 400);
   }
 
-  await env.DB.prepare(`
-    DELETE FROM products
-    WHERE id = ?
-  `).bind(id).run();
+  // Jangan hapus produk kalau sudah pernah dipakai dalam order
+  const orderCount = await env.DB
+    .prepare(
+      'SELECT COUNT(*) AS c FROM orders WHERE product_id = ?'
+    )
+    .bind(id)
+    .first();
 
-  return json({ ok: true });
+  if (orderCount && Number(orderCount.c) > 0) {
+    return json({
+      error:
+        `Produk ini punya ${orderCount.c} pesanan terkait, ` +
+        `tidak bisa dihapus. ` +
+        `Ubah status jadi "Tidak Tersedia" saja.`
+    }, 400);
+  }
+
+  await env.DB
+    .prepare(
+      'DELETE FROM products WHERE id = ?'
+    )
+    .bind(id)
+    .run();
+
+  return json({
+    ok: true
+  });
 }
