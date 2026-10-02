@@ -634,7 +634,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
   <button class="toolbar-btn" id="btnAddProduct">+ Tambah Template</button>
   <button class="toolbar-btn primary" id="btnSave">💾 Simpan &amp; Unduh File Final</button>
   <button class="toolbar-btn" id="btnExitAdmin">Keluar</button>
-  <span style="font-size:10.5px;color:var(--text-dim);">Klik teks buat edit, klik gambar buat ganti, dan pilih Produk Populer di tab Katalog.</span>
+  <span style="font-size:10.5px;color:var(--text-dim);">Klik teks buat edit, klik gambar buat ganti, dan atur Produk Populer di tab Katalog.</span>
 </div>
 <div class="admin-toast" id="adminToast"></div>
 
@@ -809,10 +809,15 @@ body.admin-active .prod-thumb{cursor:pointer;}
         </div>
       </div>
       <div class="field"><label>URL Preview</label><input type="url" id="kfPreviewUrl" placeholder="https://..."></div>
+      <div class="field"><label>URL Edit Website (Admin)</label><input type="url" id="kfAdminUrl" placeholder="https://..."></div>
       <div class="featured-picker">
         <div class="featured-picker-title">⭐ Produk Populer di Beranda</div>
         <div class="featured-picker-help">Pilih katalog mana yang mau tampil di bagian “Produk Favorit”. Maksimal 4 produk. Pilihan ini ikut tersimpan saat kamu <b>Simpan & Unduh File Final</b>.</div>
         <div class="featured-picker-list" id="featuredPickerList"><span class="empty-note" style="grid-column:1/-1;padding:8px;">Memuat katalog...</span></div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+          <button class="btn solid sm" id="featuredSaveBtn" type="button">Simpan Pilihan Populer</button>
+          <span class="verify-msg" id="featuredMsg" style="margin:0;min-height:0;"></span>
+        </div>
       </div>
       <div style="display:flex; gap:8px; margin-top:6px;">
         <button class="btn solid block" id="kfSaveBtn">Simpan</button>
@@ -1186,7 +1191,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
     box.innerHTML = products.map((p,i)=>
       '<label class="featured-option">' +
         '<input type="checkbox" class="featured-check" value="'+esc(p.id)+'" '+(selected.has(String(p.id))?'checked':'')+'>' +
-        '<span>'+esc((i+1)+'. '+p.name)+'</span>' +
+        '<span>'+esc((i+1)+'. '+String(p.name||'').replace(/^\s*\d+\.\s*/,''))+'</span>' +
       '</label>'
     ).join('');
     box.querySelectorAll('.featured-check').forEach(ch=>{
@@ -1200,15 +1205,34 @@ body.admin-active .prod-thumb{cursor:pointer;}
         const ids = checked.map(x=>x.value);
         document.documentElement.setAttribute('data-featured-ids', ids.join(','));
         renderFeatured();
-        showToast('Produk populer diperbarui. Jangan lupa Simpan & Unduh File Final.');
+        const fm = document.getElementById('featuredMsg');
+        if(fm){ fm.className='verify-msg'; fm.textContent='Pilihan berubah — klik “Simpan Pilihan Populer”.'; }
       });
     });
   }
 
+  document.getElementById('featuredSaveBtn').addEventListener('click', ()=>{
+    const fm = document.getElementById('featuredMsg');
+    if(fm){
+      fm.className='verify-msg success';
+      fm.textContent='Pilihan Produk Populer tersimpan di halaman ini.';
+    }
+    showToast('Pilihan Produk Populer disimpan. Kalau mau dipakai di file final, klik “Simpan & Unduh File Final”.');
+  });
+
   function renderFeatured(){
     const grid = document.getElementById('featuredGrid');
-    if(!productsCache.length){ grid.innerHTML = '<p class="empty-note">Belum ada produk di katalog.</p>'; return; }
+    if(!grid) return;
+    if(!productsCache.length){
+      grid.innerHTML = '<p class="empty-note">Belum ada produk di katalog.</p>';
+      return;
+    }
     const top = getFeaturedProducts();
+    if(!top.length){
+      grid.innerHTML = '<p class="empty-note">Belum ada Produk Favorit yang dipilih.</p>';
+      return;
+    }
+    grid.innerHTML = top.map(productCardHTML).join('');
     if(adminMode) grid.querySelectorAll('[data-product]').forEach(applyAdminToCard);
     observeReveal(grid);
   }
@@ -1556,6 +1580,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
     document.getElementById('kfPrice').value = '';
     document.getElementById('kfStatus').value = 'Tersedia';
     document.getElementById('kfPreviewUrl').value = '';
+    document.getElementById('kfAdminUrl').value = '';
     document.getElementById('kfThumbImg').classList.add('hidden');
     document.getElementById('kfThumbImg').src = '';
     document.getElementById('kfThumbLabel').classList.remove('hidden');
@@ -1577,6 +1602,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
       price: Number(document.getElementById('kfPrice').value) || 0,
       status: document.getElementById('kfStatus').value,
       demo_url: document.getElementById('kfPreviewUrl').value.trim(),
+      admin_url: document.getElementById('kfAdminUrl').value.trim(),
       thumbnail_url: kfThumbUrl
     };
     try{
@@ -1620,6 +1646,7 @@ body.admin-active .prod-thumb{cursor:pointer;}
     document.getElementById('kfPrice').value = p.price || 0;
     document.getElementById('kfStatus').value = p.status || 'Tersedia';
     document.getElementById('kfPreviewUrl').value = p.demo_url || '';
+    document.getElementById('kfAdminUrl').value = p.admin_url || '';
     kfThumbUrl = p.thumbnail_url || '';
     const img = document.getElementById('kfThumbImg');
     const label = document.getElementById('kfThumbLabel');
