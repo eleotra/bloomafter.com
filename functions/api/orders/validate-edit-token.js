@@ -26,10 +26,10 @@ export async function onRequestPost(context) {
   ).bind(orderId).first();
 
   const valid =
-    !!order &&
-    order.edit_token &&
-    order.edit_token === token &&
-    ['editing', 'diproses', 'done'].includes(order.status);
+  !!order &&
+  order.edit_token &&
+  order.edit_token === token &&
+  order.status === 'editing';
 
   return jsonCors({ ok: !!valid });
 }
