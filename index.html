@@ -159,6 +159,7 @@ main{padding-bottom:78px;}
 .oc-help{font-size:12.5px; color:var(--text-dim); line-height:1.7; margin-top:8px;}
 .oc-row{display:flex; gap:8px; margin-top:12px;}
 .oc-row input{flex:1; min-width:0;}
+.oc-btn.danger{background:var(--danger-bg); color:var(--danger); border:1px solid rgba(251,113,133,.3); box-shadow:none;}
 .oc-row button, .oc-btn{padding:11px 16px; border-radius:var(--r-sm); font-size:13px; font-weight:600; background:var(--grad); color:#fff; border:none; box-shadow:var(--glow-sm); white-space:nowrap;}
 .oc-btn.ghost{background:var(--surface); color:var(--text); border:1px solid var(--border); box-shadow:none;}
 .empty-note{color:var(--text-dim); font-size:13.5px; text-align:center; padding:30px 10px;}
@@ -1700,11 +1701,44 @@ body.admin-active .prod-thumb{cursor:pointer;}
             'File: '+esc(s.submission_file_name||'-')+' ('+Math.round((s.submission_size||0)/1024)+' KB)<br>' +
             'Dikirim: '+esc(s.submission_at||'-') +
           '</div>' +
-          '<div class="oc-row"><a class="oc-btn" style="flex:1;text-align:center;display:flex;align-items:center;justify-content:center;" href="/api/owner/submission-file?order_id='+encodeURIComponent(s.id)+'" target="_blank" rel="noopener">⬇ Download File</a></div>' +
+          '<div class="oc-row">' +
+          '<a class="oc-btn" style="flex:1;text-align:center;display:flex;align-items:center;justify-content:center;" href="/api/owner/submission-file?order_id='+encodeURIComponent(s.id)+'" target="_blank" rel="noopener">⬇ Download File</a>' +
+          '<button class="oc-btn danger" style="flex:1;" data-delete-submission="'+esc(s.id)+'">🗑 Hapus File</button>' +
+        '</div>' +
         '</div>'
       ).join('');
+      box.querySelectorAll('[data-delete-submission]').forEach(btn=>{
+        btn.addEventListener('click', ()=> deleteCustomerSubmission(btn.dataset.deleteSubmission, btn.closest('.submission-card')));
+      });
       checkSubmissionNotif();
     }catch(e){ box.innerHTML = '<p class="empty-note">Gagal memuat.</p>'; }
+  }
+
+  async function deleteCustomerSubmission(orderId, card){
+    if(!confirm('Hapus file customer ini dari R2? File akan benar-benar dihapus dari storage dan tidak bisa didownload lagi.')) return;
+    const btn = card && card.querySelector('[data-delete-submission]');
+    if(btn){ btn.disabled = true; btn.textContent = 'Menghapus...'; }
+    try{
+      const res = await fetch('/api/owner/delete-submission', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ order_id: orderId })
+      });
+      const data = await res.json();
+      if(!res.ok || !data.ok){
+        throw new Error(data.error || 'Gagal menghapus file.');
+      }
+      if(card) card.remove();
+      checkSubmissionNotif();
+      showToast('File customer berhasil dihapus dari storage.');
+      const box = document.getElementById('submissionList');
+      if(box && !box.querySelector('.submission-card')){
+        box.innerHTML = '<p class="empty-note">Belum ada file yang dikirim customer.</p>';
+      }
+    }catch(e){
+      alert(e.message || 'Gagal menghapus file.');
+      if(btn){ btn.disabled = false; btn.textContent = '🗑 Hapus File'; }
+    }
   }
 
   /* ================= START ================= */
