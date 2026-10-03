@@ -1552,6 +1552,11 @@ body.admin-active .prod-thumb{cursor:pointer;}
         if(g) g.addEventListener('click', ()=> ownerGenerateCode(o.id));
         const d = document.getElementById('done-owner-btn-'+o.id);
         if(d) d.addEventListener('click', ()=> ownerMarkDone(o.id));
+      const b = document.getElementById('block-btn-'+o.id);
+      if(b) b.addEventListener('click', ()=> ownerToggleBlock(o.id, Number(o.buyer_blocked) === 1));
+
+      const del = document.getElementById('delete-order-btn-'+o.id);
+      if(del) del.addEventListener('click', ()=> ownerDeleteOrder(o.id));
       });
       checkSubmissionNotif();
     }catch(e){ box.innerHTML = '<p class="empty-note">Gagal memuat.</p>'; }
@@ -1570,17 +1575,77 @@ body.admin-active .prod-thumb{cursor:pointer;}
         '<input type="text" placeholder="Link website jadi" id="url-'+o.id+'" style="margin-bottom:6px;">' +
         '<input type="text" placeholder="Catatan buat buyer (opsional)" id="note-'+o.id+'" style="margin-bottom:6px;">' +
         '<button id="done-owner-btn-'+o.id+'">Tandai Selesai</button>' +
-      '</div>';
+        '</div>';
     } else if(o.status === 'done'){
       action = '<div class="oc-help">✅ '+esc(o.final_url||'')+'</div>';
     }
+
+    const blocked = Number(o.buyer_blocked) === 1;
+
+    const userAction =
+      '<div class="oc-row" style="flex-wrap:wrap; margin-top:8px;">' +
+        '<button class="oc-btn" id="block-btn-'+o.id+'" style="flex:1;min-width:120px;">' +
+          (blocked ? '🔓 Unblock Buyer' : '🚫 Block Buyer') +
+        '</button>' +
+        '<button class="oc-btn danger" id="delete-order-btn-'+o.id+'" style="flex:1;min-width:120px;">🗑 Hapus Order</button>' +
+      '</div>';
+
     return '<div class="order-card glass">' +
       '<div class="oc-top"><span class="oc-name">'+esc(o.product_name)+'</span><span class="oc-badge badge-'+o.status+'">'+esc(STATUS_LABEL[o.status]||o.status)+'</span></div>' +
       '<div style="font-size:12px;color:var(--text-dim);">'+esc(o.buyer_name||'')+' · '+esc(o.buyer_email||'')+'</div>' +
       '<div style="font-size:12px;color:var(--primary3);">'+esc(o.buyer_telegram||'(belum isi telegram)')+'</div>' +
+      (blocked ? '<div style="font-size:12px;color:var(--danger);margin-top:6px;">🚫 Buyer sedang diblokir</div>' : '') +
       action +
-    '</div>';
+      userAction +
+      '</div>';
   }
+  async function ownerToggleBlock(orderId, currentlyBlocked){
+    const action = currentlyBlocked ? 'unblock' : 'block';
+    const message = currentlyBlocked
+      ? 'Unblock buyer ini? Buyer akan bisa membuat pesanan lagi.'
+      : 'Block buyer ini? Buyer tidak akan bisa membuat pesanan baru.';
+
+    if(!confirm(message)) return;
+
+    try{
+      const res = await fetch('/api/owner/orders', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action, order_id: orderId })
+      });
+      const data = await res.json();
+
+      if(data.ok){
+        loadOwnerPesanan();
+      } else {
+        alert(data.error || 'Gagal mengubah status block buyer.');
+      }
+    }catch(e){
+      alert('Gagal mengubah status block buyer.');
+    }
+  }
+
+  async function ownerDeleteOrder(orderId){
+    if(!confirm('Hapus order ini? Order akan hilang dari Owner dan riwayat buyer. Jika ada file submission, file tersebut juga akan dihapus.')) return;
+
+    try{
+      const res = await fetch('/api/owner/orders', {
+        method:'DELETE',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ order_id: orderId })
+      });
+      const data = await res.json();
+
+      if(data.ok){
+        loadOwnerPesanan();
+      } else {
+        alert(data.error || 'Gagal menghapus order.');
+      }
+    }catch(e){
+      alert('Gagal menghapus order.');
+    }
+  }
+
   async function ownerGenerateCode(orderId){
     try{
       const res = await fetch('/api/owner/generate-code', {
