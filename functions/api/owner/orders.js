@@ -1,7 +1,19 @@
 import { json, getSessionUser, isOwner } from '../../_lib.js';
 
-// GET /api/owner/orders
-// Menampilkan semua order untuk owner
+/*
+  GET    /api/owner/orders
+  POST   /api/owner/orders
+         Body: { action: "block" | "unblock", order_id }
+  DELETE /api/owner/orders
+         Body: { order_id }
+
+  Semua endpoint di sini hanya bisa dipakai oleh OWNER.
+*/
+
+
+/* =========================
+   GET — LIST SEMUA PESANAN
+   ========================= */
 export async function onRequestGet(context) {
   const { request, env } = context;
 
@@ -31,11 +43,9 @@ export async function onRequestGet(context) {
 }
 
 
-// POST /api/owner/orders
-// Body:
-// { action: "block", user_id: "..." }
-// atau
-// { action: "unblock", user_id: "..." }
+/* =========================
+   POST — BLOCK / UNBLOCK
+   ========================= */
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -54,41 +64,54 @@ export async function onRequestPost(context) {
   }
 
   const action = body.action;
-  const userId = body.user_id;
+  const orderId = body.order_id;
 
-  if (!userId) {
-    return json({ error: 'user_id kosong' }, 400);
+  if (!orderId) {
+    return json({ error: 'order_id kosong' }, 400);
   }
 
   if (action !== 'block' && action !== 'unblock') {
     return json({ error: 'Action tidak valid' }, 400);
   }
 
-  const targetUser = await env.DB
-    .prepare('SELECT id, email, blocked FROM users WHERE id = ?')
-    .bind(userId)
-    .first();
+  /*
+    Cari user pemilik order.
+  */
+  const order = await env.DB.prepare(
+    `SELECT id, user_id
+     FROM orders
+     WHERE id = ?`
+  ).bind(orderId).first();
 
-  if (!targetUser) {
-    return json({ error: 'User tidak ditemukan' }, 404);
+  if (!order) {
+    return json({ error: 'Pesanan tidak ditemukan' }, 404);
   }
 
-  const blocked = action === 'block' ? 1 : 0;
+  /*
+    Block / unblock berdasarkan user_id,
+    bukan berdasarkan order saja.
 
-  await env.DB
-    .prepare('UPDATE users SET blocked = ? WHERE id = ?')
-    .bind(blocked, userId)
-    .run();
+    Jadi kalau buyer punya beberapa order,
+    semuanya tetap terkait dengan akun buyer yang sama.
+  */
+  const blockedValue = action === 'block' ? 1 : 0;
+
+  await env.DB.prepare(
+    `UPDATE users
+     SET blocked = ?
+     WHERE id = ?`
+  ).bind(blockedValue, order.user_id).run();
 
   return json({
     ok: true,
-    blocked: blocked === 1
+    blocked: blockedValue === 1
   });
 }
 
 
-// DELETE /api/owner/orders?id=ORDER_ID
-// Menghapus order dan file submission customer jika ada
+/* =========================
+   DELETE — HAPUS ORDER
+   ========================= */
 export async function onRequestDelete(context) {
   const { request, env } = context;
 
@@ -98,44 +121,63 @@ export async function onRequestDelete(context) {
     return json({ error: 'Bukan akun owner' }, 403);
   }
 
-  const url = new URL(request.url);
-  const orderId = url.searchParams.get('id');
+  let body;
+
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: 'Body tidak valid' }, 400);
+  }
+
+  const orderId = body.order_id;
 
   if (!orderId) {
-    return json({ error: 'Order ID kosong' }, 400);
+    return json({ error: 'order_id kosong' }, 400);
   }
 
-  const order = await env.DB
-    .prepare(
-      `SELECT id, submission_r2_key
-       FROM orders
-       WHERE id = ?
-       LIMIT 1`
-    )
-    .bind(orderId)
-    .first();
+  /*
+    Ambil order dulu supaya kita tahu
+    apakah ada file submission di R2.
+  */
+  const order = await env.DB.prepare(
+    `SELECT id, submission_r2_key
+     FROM orders
+     WHERE id = ?`
+  ).bind(orderId).first();
 
   if (!order) {
-    return json({ error: 'Order tidak ditemukan' }, 404);
+    return json({ error: 'Pesanan tidak ditemukan' }, 404);
   }
 
-  // Hapus file customer dari R2 jika ada
+  /*
+    Kalau order punya file final di R2,
+    hapus file tersebut juga supaya tidak
+    meninggalkan file sampah di bucket.
+  */
   if (order.submission_r2_key && env.FILES) {
     try {
       await env.FILES.delete(order.submission_r2_key);
     } catch (e) {
-      console.error('Gagal menghapus file R2:', e);
+      /*
+        Kalau file R2 gagal dihapus, kita tetap
+        lanjut menghapus order dari database.
+      */
     }
   }
 
-  // Hapus order dari database
-  await env.DB
-    .prepare('DELETE FROM orders WHERE id = ?')
-    .bind(orderId)
-    .run();
+  /*
+    Hapus order dari D1.
+    Setelah ini order tersebut otomatis
+    tidak muncul lagi di:
+      - Owner → Pesanan
+      - Buyer → Riwayat
+  */
+  await env.DB.prepare(
+    `DELETE FROM orders
+     WHERE id = ?`
+  ).bind(orderId).run();
 
   return json({
-    ok: true,
-    message: 'Order berhasil dihapus'
+    ok: true
   });
 }
